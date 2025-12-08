@@ -94,5 +94,22 @@ export function loadLevel(scene) {
     checkLight.position.set(0, 5, -20);
     scene.add(checkLight);
 
+
+    
+    // Add a soft ambient light so MeshStandardMaterials are visible if level lights fail
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+
+    //TEMPORARY
+    // Add a visible debug box in front of the camera so you can verify rendering
+    const debugGeo = new THREE.BoxGeometry(1, 1, 1);
+    const debugMat = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+    const debugBox = new THREE.Mesh(debugGeo, debugMat);
+    debugBox.position.set(0, 0.5, -3);
+    scene.add(debugBox);
+
+
     return colliders;
+
+        
 }

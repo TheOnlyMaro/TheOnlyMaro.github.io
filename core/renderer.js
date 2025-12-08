@@ -9,7 +9,9 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-document.body.appendChild(renderer.domElement);
+document.getElementById('game-container').appendChild(renderer.domElement);
+
+// Handle window resize
 
 function handleResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
