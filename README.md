@@ -1,5 +1,7 @@
 # Portal_Game
-MUST READ BEFORE PROJECT DEVELOPMENT
+# MUST READ BEFORE PROJECT DEVELOPMENT
+
+
 Quick start
 
 Prerequisites: Node.js
