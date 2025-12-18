@@ -12,6 +12,7 @@ export class PlayerController {
     this.jumpStrength = 8;
     this.gravity = -20;
     this.onGround = false;
+    this.gunLoaded = false;
     this.loadGun() 
   }
 
@@ -25,6 +26,7 @@ loader.load(
     this.gun.scale.set(0.05, 0.05, 0.05);
     this.gun.position.set(0.2, -0.3, -1.2);
     this.gun.rotation.y = Math.PI / 2;
+
          // Apply metalness, roughness, and color to all meshes
 this.gun.traverse(child => {
     if (child.isMesh) {
@@ -36,6 +38,7 @@ this.gun.traverse(child => {
     }
 });
     this.camera.add(this.gun)
+    this.gunLoaded = true; 
   },
   undefined,
   error => {
@@ -44,6 +47,11 @@ this.gun.traverse(child => {
 )
 }
 
+
+
+  getGun() {
+  return this.gunLoaded ? this.gun : null;
+}
 
   getObject() {
     return this.player;

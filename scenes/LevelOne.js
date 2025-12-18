@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { setupLights } from '../decor/lights.js';
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
-
 import { createWalls } from '../obstacles/walls.js';
-
 import { createFloor, createCeiling } from '../decor/floor_ceiling.js';
+
 
 export function setupScene() {
     const scene = new THREE.Scene();
@@ -26,7 +25,6 @@ export function setupScene() {
 
     // --- Obstacles ---
    // const obstacles = setupObstacles(scene);
-
 
     // --- Lights ---
     setupLights(scene, floorSize, wallHeight);

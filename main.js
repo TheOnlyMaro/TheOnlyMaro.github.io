@@ -2,14 +2,19 @@ import * as THREE from 'three';
 import { CameraController } from './Controllers/CameraController.js';
 import { createRenderer } from './core/renderer.js';
 import { setupScene } from './scenes/LevelOne.js';
-
+import { PortalRaycaster } from './portal_logic/portalRayCaster.js';
+import { PortalSystem } from './portal_logic/portalSystem.js';
 // --- Setup scene and walls ---
 const { scene, walls } = setupScene();
-
+const portalRaycaster = new PortalRaycaster();
+scene.add(portalRaycaster.debugRay);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
 
 // Pass walls array to CameraController for collisions
 const cameraController = new CameraController(camera, scene, walls);
+
+const portalSystem = new PortalSystem();
+scene.add(portalSystem);
 
 const renderer = createRenderer();
 
@@ -23,6 +28,18 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-function animate() { requestAnimationFrame(animate); cameraController.update(); renderer.render(scene, camera); }
+function animate() {
+  requestAnimationFrame(animate);
 
+  cameraController.update(); // updates player/camera
+
+  portalRaycaster.update(
+    camera,    // camera for direction
+    walls      // array of objects to hit
+  );
+
+  portalSystem.update(portalRaycaster.hitInfo);
+
+  renderer.render(scene, camera);
+}
 animate();
