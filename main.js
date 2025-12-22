@@ -67,7 +67,7 @@
 import * as THREE from 'three';
 import { CameraController } from './Controllers/CameraController.js';
 import { createRenderer } from './core/renderer.js';
-import { setupScene } from './scenes/LevelOne.js';
+import { setupScene } from './scenes/LevelTwo.js';
 import { PortalRaycaster } from './portal_logic/portalRayCaster.js';
 import { PortalSystem } from './portal_logic/portalSystem.js';
 import { PortalTeleport } from './portal_logic/portalTeleport.js'; // NEW: added
@@ -93,6 +93,12 @@ const portalTeleport = new PortalTeleport(
 
 
 const renderer = createRenderer();
+// const renderer = new THREE.WebGLRenderer({ 
+//   canvas: document.querySelector('canvas'),
+//   stencil: true,      // ← ADD THIS!
+//   antialias: true,
+//   alpha: false
+// });
 const portalRenderer = new PortalRenderer(renderer, scene, camera);
 
 // --- Prevent zoom ---
@@ -100,15 +106,15 @@ window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
 
 // --- WINDOW RESIZE LOGIC ---
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 window.addEventListener('click', () => {
   if (portalRaycaster.hitInfo) {
     const placedPortal = portalSystem.placePortal(portalRaycaster.hitInfo);
-    
+
     // Update portal renderer when portals are placed
     if (placedPortal) {
       portalRenderer.updatePortalMeshes(
