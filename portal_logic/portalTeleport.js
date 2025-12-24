@@ -8,10 +8,11 @@ export class PortalTeleport {
    * @param {PortalSystem} portalSystem - your portal system instance
    * @param {CollisionController} collisionController - optional, to skip collisions for 1 frame
    */
-  constructor(player, portalSystem, collisionController = null) {
+  constructor(player, portalSystem, collisionController = null, mouseController = null) {
     this.player = player;
     this.portalSystem = portalSystem;
     this.collisionController = collisionController;
+    this.mouseController = mouseController;
 
     // Better teleport cooldown system
     this.teleportCooldown = 0;
@@ -52,102 +53,116 @@ export class PortalTeleport {
     }
   }
 
-  teleportTo(destinationPortal, sourcePortal, portalName) {
-    // Calculate exit position based on portal normal
-    const exitOffset = destinationPortal.normal.clone().multiplyScalar(2);
-    const newPosition = destinationPortal.point.clone().add(exitOffset);
 
-    // Set new position
+
+  teleportTo(destinationPortal, sourcePortal, portalName) {
+    // -------------------------------------------------------------------------
+    // 1. Position Teleport
+    // -------------------------------------------------------------------------
+    const exitOffset = destinationPortal.normal.clone().multiplyScalar(1.5);
+    const newPosition = destinationPortal.point.clone().add(exitOffset);
     this.player.position.copy(newPosition);
 
+    // -------------------------------------------------------------------------
+    // 2. Construct Robust Quaternions from Normals
+    // -------------------------------------------------------------------------
+    // We cannot trust .object.quaternion because the wall mesh might be unrotated.
+    // We calculate the rotation required to look ALONG the normal.
+    
+    const dummyUp = new THREE.Vector3(0, 1, 0);
+    const forward = new THREE.Vector3(0, 0, 1);
 
-    //TODO: FIX
-    // ... inside teleportTo method ...
+    // Create Source Rotation (Looking out of the wall)
+    const sourceQuat = new THREE.Quaternion();
+    sourceQuat.setFromUnitVectors(forward, sourcePortal.normal);
 
-    // ---------------------------------------------------------
-    // 1. Get Portal Rotations
-    // ---------------------------------------------------------
-    // We need the full rotation (Quaternion) of the portals, not just normals.
-    // The portal data stored by `PortalSystem` includes `object` (the hit object).
-    // Use that mesh's quaternion when available.
-    const sourceQuat = sourcePortal.object ? sourcePortal.object.quaternion : (sourcePortal.mesh ? sourcePortal.mesh.quaternion : sourcePortal.quaternion);
-    const destQuat = destinationPortal.object ? destinationPortal.object.quaternion : (destinationPortal.mesh ? destinationPortal.mesh.quaternion : destinationPortal.quaternion);
+    // Create Destination Rotation (Looking out of the wall)
+    const destQuat = new THREE.Quaternion();
+    destQuat.setFromUnitVectors(forward, destinationPortal.normal);
 
-    if (!sourceQuat || !destQuat) {
-        console.warn("Portal meshes/quaternions missing. Cannot rotate player.");
-        return;
+    // -------------------------------------------------------------------------
+    // 3. Calculate Target View Direction
+    // -------------------------------------------------------------------------
+    // A. Get current direction player is looking
+    const camera = this.player.children.find(c => c.isCamera);
+    const currentViewDir = new THREE.Vector3();
+    camera.getWorldDirection(currentViewDir);
+
+    // B. Calculate Transform: Dest * Flip * Inverse(Source)
+    // Flip is 180 degrees around Y (to turn "entering" into "exiting")
+    const flipQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+    
+    const transformQuat = new THREE.Quaternion();
+    transformQuat.copy(destQuat)
+        .multiply(flipQuat)
+        .multiply(sourceQuat.clone().invert());
+
+    // C. Apply transform to the view vector
+    const targetViewDir = currentViewDir.clone().applyQuaternion(transformQuat).normalize();
+
+    // -------------------------------------------------------------------------
+    // 4. Extract & Apply Euler Angles
+    // -------------------------------------------------------------------------
+    
+    // A. Calculate PITCH (Up/Down)
+    // asin(y) gives the vertical angle. Clamp it to avoid flipping over.
+    let targetPitch = Math.asin(targetViewDir.y);
+    const maxPitch = Math.PI / 2 - 0.05; // Slightly less than 90 deg
+    targetPitch = Math.max(-maxPitch, Math.min(maxPitch, targetPitch));
+
+    // B. Calculate YAW (Left/Right)
+    // We use atan2(x, z) to find the angle on the horizon
+    const targetYaw = Math.atan2(targetViewDir.x, targetViewDir.z);
+
+    // C. Apply YAW to Player (Body)
+    // Note: Three.js standard 0 rotation is usually +Z. 
+    // If your character faces wrong, you might need (targetYaw + Math.PI).
+    // But usually atan2 matches rotation.y directly.
+    this.player.rotation.y = targetYaw;
+
+    // D. Apply PITCH to MouseController (Head)
+    if (this.mouseController) {
+        this.mouseController.pitch = targetPitch;
+        this.mouseController.camera.rotation.x = targetPitch;
     }
 
-    // ---------------------------------------------------------
-    // 2. Calculate Relative Rotation
-    // ---------------------------------------------------------
-    // Formula: Destination * Rotate180 * Inverse(Source)
-    // We flip 180 around Y because we are walking INTO the source 
-    // but want to walk OUT of the destination.
-    const rotation180 = new THREE.Quaternion();
-    rotation180.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
-
-    // Calculate the difference: remove source rotation, flip, apply dest rotation
-    // Note: Three.js multiplies quaternions in reverse order of operation (Local -> World)
-    const relativeRotation = rotation180.clone()
-        .multiply(sourceQuat.clone().invert()) // Remove source rotation
-        .premultiply(destQuat);               // Add dest rotation
-
-    // ---------------------------------------------------------
-    // 3. Apply to Player
-    // ---------------------------------------------------------
-    // Apply this delta to the player's current rotation
-    this.player.quaternion.premultiply(relativeRotation);
-
-    // ---------------------------------------------------------
-    // 4. Preserve Momentum (Crucial for "walking through")
-    // ---------------------------------------------------------
-    // If you don't rotate the velocity, the player will exit facing the new way
-    // but continuing to move in the OLD world direction (e.g., sliding sideways).
+    // -------------------------------------------------------------------------
+    // 5. Update Momentum
+    // -------------------------------------------------------------------------
     if (this.player.velocity) {
-        this.player.velocity.applyQuaternion(relativeRotation);
+         // Calculate simple velocity rotation based on Y-axis change
+         // (Ignoring complex 3D velocity mapping for gameplay stability)
+         const velocitySpeed = this.player.velocity.length();
+         
+         // Create a vector pointing in the new Yaw direction
+         // and scale it by the original speed
+         this.player.velocity.set(Math.sin(targetYaw), 0, Math.cos(targetYaw));
+         this.player.velocity.normalize().multiplyScalar(velocitySpeed);
+         
+         // Preserve vertical momentum if needed, or dampen it?
+         // Usually safer to reset Y velocity to 0 unless you want to launch out of floor portals
+         // this.player.velocity.y = 0; 
     }
 
-    // ---------------------------------------------------------
-    // 5. Fix Camera Snap-Back (The bug you likely faced)
-    // ---------------------------------------------------------
-    // Many camera controllers (like PointerLockControls) maintain their own 
-    // internal Euler state (yaw/pitch). If you only rotate the mesh, the 
-    // controller will snap the camera back to the old angle on the next mouse move.
-    
-    // You must force the camera/controller to accept the new forward vector.
-    // This implementation depends on your specific controller, but a generic fix is:
-    const camera = this.player.children.find(c => c.isCamera) || this.player.getObjectByProperty('type', 'PerspectiveCamera');
-    
-    if (camera) {
-        // Option A: If using a custom controller on the player
-        // Just ensure your controller reads from this.player.quaternion next frame
-        
-        // Option B: If using standard Three.js PointerLockControls
-        // You might need to rotate the camera to match the player if they are decoupled
-        // const euler = new THREE.Euler(0,0,0, 'YXZ');
-        // euler.setFromQuaternion(this.player.quaternion);
-        // camera.rotation.copy(euler); 
-    }
-    //TODO: END FIX
-
-
-    // Update previous position to prevent collision glitches
+    // -------------------------------------------------------------------------
+    // 6. Housekeeping
+    // -------------------------------------------------------------------------
     if (this.collisionController) {
-      this.collisionController.player.prevPosition = this.player.position.clone();
+        this.collisionController.player.prevPosition = this.player.position.clone();
     }
-    this.player.prevPosition = this.player.position.clone();
+    if (this.player.prevPosition) {
+        this.player.prevPosition.copy(this.player.position);
+    }
 
-    // Set cooldown and track which portal we used
     this.teleportCooldown = this.cooldownDuration;
     this.lastPortalUsed = portalName;
 
-    // Clear the last portal after a bit longer to allow re-entry from same side
     setTimeout(() => {
-      if (this.lastPortalUsed === portalName) {
-        this.lastPortalUsed = null;
-      }
+        if (this.lastPortalUsed === portalName) {
+            this.lastPortalUsed = null;
+        }
     }, this.cooldownDuration * 1000 + 200);
-
   }
+
+
 }

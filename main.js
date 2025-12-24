@@ -67,7 +67,8 @@ scene.add(portalSystem);
 const portalTeleport = new PortalTeleport(
   cameraController.getPlayer(), // player object
   portalSystem,                  // portal system
-  cameraController.collision     // collision controller
+  cameraController.collision,     // collision controller
+  cameraController.mouse
 );
 
 
