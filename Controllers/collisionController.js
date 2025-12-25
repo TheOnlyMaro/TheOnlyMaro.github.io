@@ -8,45 +8,54 @@ export class CollisionController {
 
     // Player collision box size
     this.playerBox = new THREE.Box3();
+    
+    // OPTIMIZATION: Pre-calculate static wall boxes once
+    // Re-calculating setFromObject() every frame for static walls kills performance.
+    this.wallBoxes = this.walls.map(wall => {
+        const box = new THREE.Box3();
+        box.setFromObject(wall);
+        return box;
+    });
   }
 
   update() {
-    // Update player bounding box - smaller to avoid false collisions
-    const playerSize = new THREE.Vector3(0.7, 1.7, 0.7);
+    // Update player bounding box
+    // Made slightly smaller (0.6 width) to prevent feeling "too wide" in doorways
+    const playerSize = new THREE.Vector3(0.6, 1.7, 0.6);
     this.playerBox.setFromCenterAndSize(
       this.player.position,
       playerSize
     );
 
-    // Check collision with each wall - RECOMPUTE boxes dynamically each frame
-    for (let wall of this.walls) {
-      const wallBox = new THREE.Box3().setFromObject(wall);
+    // 1. Check cached Static Walls
+    for (const wallBox of this.wallBoxes) {
       if (this.playerBox.intersectsBox(wallBox)) {
         this.handleCollision();
-        return; // Exit immediately
+        return; 
       }
     }
 
-    // Check dynamic objects (recompute box every frame)
+    // 2. Check Dynamic Objects (Must re-calculate these every frame)
     for (let obj of this.dynamicObjects) {
       const box = new THREE.Box3().setFromObject(obj);
       if (this.playerBox.intersectsBox(box)) {
         this.handleCollision();
-        return; // Exit immediately
+        return; 
       }
     }
   }
 
   handleCollision() {
-    // Undo movement by restoring to previous position
-    const diff = new THREE.Vector3().subVectors(
-      this.player.position,
-      this.player.prevPosition
-    );
+    if (!this.player.prevPosition) return;
+
+    // THE FIX FOR STICKY WALLS:
+    // Only revert Horizontal (X/Z) movement.
+    // We leave Y alone so gravity can still pull you down while you slide against the wall.
     
-    // Only undo if player moved into collision
-    if (diff.length() > 0.001) {
-      this.player.position.copy(this.player.prevPosition);
-    }
+    this.player.position.x = this.player.prevPosition.x;
+    this.player.position.z = this.player.prevPosition.z;
+    
+    // Note: If you have ceilings/overhangs in 'walls', you might need to check Y too.
+    // But for vertical walls, this prevents the "Spider-Man" stickiness.
   }
 }
