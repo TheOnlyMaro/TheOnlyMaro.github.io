@@ -9,7 +9,9 @@ export class PortalMesh {
     const material = new THREE.ShaderMaterial({
       uniforms: {
         map: { value: renderTarget.texture },
-        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+        // Add an exposure/brightness multiplier uniform
+        brightnessBoost: { value: 2.5 } // <--- Start with 2.0 or 2.5
       },
       vertexShader: `
         varying vec4 vClipPosition;
@@ -21,15 +23,19 @@ export class PortalMesh {
       fragmentShader: `
         uniform sampler2D map;
         uniform vec2 resolution;
+        uniform float brightnessBoost; // <--- Use the uniform
         
         void main() {
-          // Calculate screen screen UV coordinates (0..1)
+          // Calculate screen UV coordinates (0..1)
           vec2 screenUV = gl_FragCoord.xy / resolution;
           
           // Sample the portal texture
           vec4 color = texture2D(map, screenUV);
           
-          gl_FragColor = color;
+          // --- LIGHTING FIX ---
+          // Multiply the color to counteract double-tone-mapping or light loss.
+          // Since this is a "window" (unlit), we control the emission directly.
+          gl_FragColor = vec4(color.rgb * brightnessBoost, color.a);
         }
       `
     });
