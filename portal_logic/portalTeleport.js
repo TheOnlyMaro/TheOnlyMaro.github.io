@@ -46,96 +46,88 @@ export class PortalTeleport {
   teleportTo(destinationPortal, sourcePortal, portalName) {
     console.log(`🌀 Teleporting from ${portalName}...`);
 
+    // -------------------------------------------------------------------------
     // 1. Position Teleport
+    // -------------------------------------------------------------------------
+    // Bump out slightly to avoid clipping
     const exitOffset = destinationPortal.normal.clone().multiplyScalar(1.5);
     const newPosition = destinationPortal.point.clone().add(exitOffset);
     this.player.position.copy(newPosition);
 
-    // ... inside teleportTo ...
-
     // -------------------------------------------------------------------------
-    // 2. Validate Normals (The Fix)
+    // 2. Prepare Rotation Math
     // -------------------------------------------------------------------------
-    
-    // Clone to avoid modifying the original data
-    let srcNorm = sourcePortal.normal.clone();
-    let dstNorm = destinationPortal.normal.clone();
-
-    // DEBUG: Check what the physics engine/raycaster is actually giving us
-    // If these print the exact same values for different walls, that's the bug.
-    console.log(`Source Raw Normal: ${srcNorm.x.toFixed(2)}, ${srcNorm.y.toFixed(2)}, ${srcNorm.z.toFixed(2)}`);
-    console.log(`Dest Raw Normal:   ${dstNorm.x.toFixed(2)}, ${dstNorm.y.toFixed(2)}, ${dstNorm.z.toFixed(2)}`);
-
-    // FIX: If the portal data has the object reference, transform normal to World Space
-    // (Only needed if your normals are coming back as Local Space)
-    if (sourcePortal.object) {
-        // Transform direction by the object's rotation quaternion
-        // Note: transformDirection is used for vectors (ignores translation)
-        // srcNorm.applyQuaternion(sourcePortal.object.quaternion).normalize();
-    }
-    if (destinationPortal.object) {
-        // dstNorm.applyQuaternion(destinationPortal.object.quaternion).normalize();
-    }
-
-    // Now use these (potentially corrected) normals for the math
     const forward = new THREE.Vector3(0, 0, 1);
+    const srcNorm = sourcePortal.normal.clone();
+    const dstNorm = destinationPortal.normal.clone();
+
+    // Create Quaternions representing the "Facing" of each portal
     const sourceQuat = new THREE.Quaternion().setFromUnitVectors(forward, srcNorm);
     const destQuat = new THREE.Quaternion().setFromUnitVectors(forward, dstNorm);
 
-    // ... continue with Step 3 ...
-    // 3. Calculate Target Look Vector
+    // -------------------------------------------------------------------------
+    // 3. Calculate The "Portal Transform" Matrix
+    // -------------------------------------------------------------------------
+    // This Quaternion represents the exact rotation needed to map
+    // "Entering Source" -> "Exiting Destination"
+    const flipQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+    
+    const transformQuat = new THREE.Quaternion();
+    transformQuat.copy(destQuat)
+        .multiply(flipQuat)
+        .multiply(sourceQuat.clone().invert());
+
+    // -------------------------------------------------------------------------
+    // 4. Apply Rotation to VIEW (Camera/Body)
+    // -------------------------------------------------------------------------
     const camera = this.player.children.find(c => c.isCamera) || this.player.getObjectByProperty('type', 'PerspectiveCamera');
     const currentViewDir = new THREE.Vector3();
     camera.getWorldDirection(currentViewDir);
 
-    // Transform: Dest * Flip(180) * Source_Inverse
-    const flipQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
-    const transformQuat = new THREE.Quaternion();
-    transformQuat.copy(destQuat).multiply(flipQuat).multiply(sourceQuat.clone().invert());
-
+    // Calculate new look direction
     const targetViewDir = currentViewDir.clone().applyQuaternion(transformQuat).normalize();
 
-    // 4. Extract Euler Angles
-    // Pitch (X-axis): asin of the Y component
-    // Clamp to avoid 90-degree locks
+    // Extract Yaw/Pitch (Using negative values for Camera -Z alignment)
     const targetPitch = Math.max(-1.5, Math.min(1.5, Math.asin(targetViewDir.y)));
-    
-    // Yaw (Y-axis): atan2 of X, Z
-    // We use negative components to align with the camera's -Z forward axis
     const targetYaw = Math.atan2(-targetViewDir.x, -targetViewDir.z);
 
-    console.log(`🎯 New Angles -> Pitch: ${targetPitch.toFixed(2)}, Yaw: ${targetYaw.toFixed(2)}`);
-
-    // 5. Apply to Controllers
-    // Force Player Body to new Yaw
+    // Apply to Controllers
     this.player.rotation.y = targetYaw;
-
-    // Force Mouse Controller to new Pitch
     if (this.mouseController) {
         this.mouseController.pitch = targetPitch;
         this.mouseController.camera.rotation.x = targetPitch;
-    } else {
-        // Fallback: Try to force camera directly if controller is missing
-        console.warn("⚠️ No MouseController found. Forcing camera directly (Snap-back may occur).");
-        camera.rotation.x = targetPitch;
     }
 
-    // 6. Rotate Velocity
+    // -------------------------------------------------------------------------
+    // 5. Apply Rotation to MOMENTUM (The Velocity Fix)
+    // -------------------------------------------------------------------------
+    // We apply the EXACT same transform to the velocity vector.
+    // This converts "Falling Down" (-Y) into "Flying Out" (+X or +Z)
+    
     if (this.player.velocity) {
-         const speed = this.player.velocity.length();
-         // Reset velocity to point in new forward direction (simplified for stability)
-         this.player.velocity.set(Math.sin(targetYaw), 0, Math.cos(targetYaw)).multiplyScalar(speed);
+         // Apply the portal rotation to the velocity vector
+         this.player.velocity.applyQuaternion(transformQuat);
+
+         // OPTIONAL: Add a tiny "kick" away from the portal to prevent
+         // the player's collision check from accidentally re-triggering the portal immediately
+         // (Only if velocity is very low)
+         if (this.player.velocity.length() < 5.0) {
+             const exitPush = destinationPortal.normal.clone().multiplyScalar(5.0);
+             this.player.velocity.add(exitPush);
+         }
     }
 
-    // 7. Housekeeping
+    // -------------------------------------------------------------------------
+    // 6. Housekeeping
+    // -------------------------------------------------------------------------
     if (this.collisionController) this.collisionController.player.prevPosition = this.player.position.clone();
     if (this.player.prevPosition) this.player.prevPosition.copy(this.player.position);
 
     this.teleportCooldown = this.cooldownDuration;
-    this.lastPortalUsed = portalName;
+    //this.lastPortalUsed = portalName;
 
-    setTimeout(() => {
-      if (this.lastPortalUsed === portalName) this.lastPortalUsed = null;
-    }, this.cooldownDuration * 1000 + 200);
+    // setTimeout(() => {
+    //   if (this.lastPortalUsed === portalName) this.lastPortalUsed = null;
+    // }, this.cooldownDuration * 1000 + 200);
   }
 }

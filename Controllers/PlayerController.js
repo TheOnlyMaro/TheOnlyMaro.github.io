@@ -6,23 +6,25 @@ export class PlayerController {
         this.player = new THREE.Object3D();
         this.camera = camera;
         
-        // Camera head height
         this.camera.position.set(0, 1.6, 0);
         this.player.add(this.camera);
         
         // Physics
         this.velocity = new THREE.Vector3();
+        
+        // --- CRITICAL FIX: Link velocity to the Mesh so PortalTeleport can find it ---
+        this.player.velocity = this.velocity; 
+        // -----------------------------------------------------------------------------
+
         this.direction = new THREE.Vector3();
-        this.speed = 8; // Slightly faster for better feel
+        this.speed = 8; 
         this.jumpStrength = 10;
-        this.gravity = -30; // Stronger gravity for snappy jumps
+        this.gravity = -30; 
         this.onGround = false;
         
-        // Floor Detection
         this.raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 2);
-        this.floorMeshes = []; // We will fill this from Main
+        this.floorMeshes = []; 
 
-        // Gun setup
         this.gunLoaded = false;
         this.loadGun();
     }
@@ -52,6 +54,7 @@ export class PlayerController {
 
     getObject() { return this.player; }
 
+    // Standard movement (WASD) - Independent of momentum
     moveForward(distance) { this.player.translateZ(-distance); }
     moveRight(distance) { this.player.translateX(distance); }
 
@@ -66,18 +69,27 @@ export class PlayerController {
         // 1. Apply Gravity
         this.velocity.y += this.gravity * delta;
 
-        // 2. Calculate potential movement
-        const moveY = this.velocity.y * delta;
+        // 2. Apply Air Resistance / Ground Friction to Horizontal Momentum
+        // This ensures the "fling" eventually slows down
+        const drag = this.onGround ? 5.0 : 0.5; // High friction on ground, low in air
+        this.velocity.x -= this.velocity.x * drag * delta;
+        this.velocity.z -= this.velocity.z * drag * delta;
 
-        // 3. Robust Ground Detection
-        // Raycast from player center (Y+1) downwards
+        // Clean up tiny values to stop sliding
+        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0;
+        if (Math.abs(this.velocity.z) < 0.1) this.velocity.z = 0;
+
+        // 3. Apply Velocity to Position (This makes the Fling happen!)
+        this.player.position.x += this.velocity.x * delta;
+        this.player.position.z += this.velocity.z * delta;
+        this.player.position.y += this.velocity.y * delta;
+
+        // 4. Ground Detection
         const rayOrigin = this.player.position.clone();
         rayOrigin.y += 1.0; 
         
         this.raycaster.ray.origin.copy(rayOrigin);
-
-        // Ray length = Distance to feet (1.0) + Lookahead for falling
-        // If we are falling fast, we look further down to catch the floor early
+        const moveY = this.velocity.y * delta;
         const lookAhead = Math.max(0, -moveY) + 0.2; 
         this.raycaster.far = 1.0 + lookAhead;
 
@@ -88,24 +100,18 @@ export class PlayerController {
         if (intersections.length > 0) {
             const hit = intersections[0];
             
-            // If we hit the floor AND we are moving down (or standing still)
+            // Only snap to floor if falling
             if (this.velocity.y <= 0) {
-                // Snap to floor position immediately
-                // hit.point.y is the top of the floor mesh
                 this.player.position.y = hit.point.y; 
-                this.velocity.y = Math.max(0, this.velocity.y);
+                this.velocity.y = 0; 
                 this.onGround = true;
-                return; // Stop processing falling logic
             }
         }
 
-        // 4. If no floor hit, apply the movement
-        this.player.position.y += moveY;
-
-        // Fallback: Safety net if you fall below the world
+        // Safety Net
         if (this.player.position.y < -50) {
-            // Respawn logic handled in main, but we can stop velocity here
-            this.velocity.y = 0;
+            this.velocity.set(0, 0, 0);
+            this.player.position.set(0, 5, 0);
         }
     }
 }
