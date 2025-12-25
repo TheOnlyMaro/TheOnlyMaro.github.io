@@ -28,12 +28,15 @@ export class PortalTeleport {
     const bluePortal = this.portalSystem.bluePortalData;
     const orangePortal = this.portalSystem.orangePortalData;
 
+    const playerCenter = this.player.position.clone();
+    playerCenter.y += 1.75; 
+
     if (!bluePortal || !orangePortal) return;
     if (!this.portalSystem.bluePortalActive || !this.portalSystem.orangePortalActive) return;
 
-    const distToBlue = this.player.position.distanceTo(bluePortal.point);
-    const distToOrange = this.player.position.distanceTo(orangePortal.point);
-    const teleportRadius = 1.5;
+    const distToBlue = playerCenter.distanceTo(bluePortal.point);
+    const distToOrange = playerCenter.distanceTo(orangePortal.point);
+    const teleportRadius = 2.0;
 
     if (distToBlue < teleportRadius && this.lastPortalUsed !== 'blue') {
       this.teleportTo(orangePortal, bluePortal, 'blue');
