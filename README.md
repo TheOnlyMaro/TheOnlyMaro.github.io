@@ -23,6 +23,13 @@ A high-performance, browser-based 3D puzzle-platformer inspired by the classic P
 
 ---
 
+## 📄 Documentation
+
+-   **Project Report**: [ComputerGraphics_doc.pdf](file:///c:/Users/ROAAG/.gemini/antigravity/scratch/Portal_Game/ComputerGraphics_doc.pdf) — Detailed overview of the project's technical implementation and design.
+-   **Level Design**: [LEVEL_THREE_DESIGN.md](file:///c:/Users/ROAAG/.gemini/antigravity/scratch/Portal_Game/LEVEL_THREE_DESIGN.md) — Exhaustive design notes for the complex Level Three puzzle.
+
+---
+
 ## 🎮 How to Play
 
 Master the portals to navigate through increasingly difficult test chambers.
