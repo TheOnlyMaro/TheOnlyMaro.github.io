@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { audioManager, AudioManager } from './AudioManager.js';
 
 export class PlayerController {
     constructor(camera, domElement) {
@@ -61,6 +62,7 @@ export class PlayerController {
         if (this.onGround) {
             this.velocity.y = this.jumpStrength;
             this.onGround = false;
+            audioManager.playJump();
         }
     }
 
