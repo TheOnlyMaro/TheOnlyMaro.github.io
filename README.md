@@ -51,6 +51,19 @@ Master the portals to navigate through increasingly difficult test chambers.
     npm install
     ```
 
+---
+
+## 📄 Documentation
+
+For more technical details on the graphics and implementation, see [ComputerGraphics_doc.pdf](./ComputerGraphics_doc.pdf).
+
+---
+
+> [!TIP]
+> Use the environment to your advantage. If a gap seems too wide to jump, look at the ceiling or walls for a portal surface!
+
+*Happy Testing!* 🧪
+
 2.  Launch the development server:
     ```bash
     npm run dev
