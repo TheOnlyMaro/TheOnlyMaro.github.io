@@ -3,7 +3,7 @@ import { PlayerController } from './PlayerController.js';
 import { KeyboardController } from './keyboardController.js';
 import { MouseController } from './MouseController.js';
 import { CollisionController } from './collisionController.js';
-
+import { audioManager } from './AudioManager.js';
 export class CameraController {
     // walls = Objects that stop X/Z movement
     // floors = Objects that stop Y movement (gravity)
@@ -26,6 +26,9 @@ export class CameraController {
         this.player.getObject().prevPosition = this.player.getObject().position.clone();
         // this.clock = new THREE.Clock();
         // temp remove clock for bug fix
+
+
+        this.stepTimer = 0; // For footstep sounds
     }
 
     update(delta) {
@@ -39,10 +42,25 @@ export class CameraController {
         const moveDistance = this.player.speed * delta;
         const input = this.keyboard.getDirection();
 
+        const isMoving = input.forward || input.backward || input.left || input.right;
         if (input.forward) this.player.moveForward(moveDistance);
         if (input.backward) this.player.moveForward(-moveDistance);
         if (input.left) this.player.moveRight(-moveDistance);
         if (input.right) this.player.moveRight(moveDistance);
+
+        // Footstep Sounds
+        if (isMoving && this.player.onGround) {
+            this.stepTimer += delta;
+
+        // Every 0.5 seconds (adjust for walking speed)
+            if (this.stepTimer > 0.5) {
+                audioManager.playStep();
+                this.stepTimer = 0; // Reset timer
+            }
+        } else {
+            // Reset timer immediately if we stop so the first step happens sooner when we start again
+            this.stepTimer = 0.4; 
+        }
 
         if (this.keyboard.keys['Space']) {
             this.player.jump();
