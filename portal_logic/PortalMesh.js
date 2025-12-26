@@ -4,7 +4,7 @@ export class PortalMesh {
   constructor(renderTarget) {
     // Geometry can be a simple plane - shader handles projection
     // We make it slightly larger to ensure coverage if oblique clipping misses edge
-    const geometry = new THREE.PlaneGeometry(10, 10);
+    const geometry = new THREE.PlaneGeometry(2, 3);
 
     const material = new THREE.ShaderMaterial({
       uniforms: {

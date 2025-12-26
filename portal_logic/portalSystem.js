@@ -50,8 +50,28 @@ export class PortalSystem extends THREE.Object3D {
     }
   }
 
+
   placePortal(hitInfo) {
     if (!hitInfo) return;
+
+    // --- 1. OVERLAP PREVENTION FIX ---
+    // If the OTHER portal is active, check the distance.
+    let otherPortalPoint = null;
+    if (this.currentPortal === 'blue' && this.orangePortalActive && this.orangePortalData) {
+        otherPortalPoint = this.orangePortalData.point;
+    } else if (this.currentPortal === 'orange' && this.bluePortalActive && this.bluePortalData) {
+        otherPortalPoint = this.bluePortalData.point;
+    }
+
+    // If portals would overlap (distance < 2.0 meters), CANCEL placement.
+    if (otherPortalPoint) {
+        const dist = hitInfo.point.distanceTo(otherPortalPoint);
+        if (dist < 2.5) {
+            console.warn("⚠️ Portals too close! Placement cancelled.");
+            return null; // Stop here
+        }
+    }
+    // ---------------------------------
 
     if (this.currentPortal === 'blue') {
       this.blueHalo.setPositionAndOrientation(hitInfo.point, hitInfo.normal);
