@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { CameraController } from './Controllers/CameraController.js';
 import { createRenderer } from './core/renderer.js';
-import { setupScene as setupLevelOne } from './scenes/LevelOne.js';
-import { setupScene as setupLevelTwo } from './scenes/LevelTwo.js';
 import { setupScene as setupLevelThree } from './scenes/LevelThree.js';
 import { PortalRaycaster } from './portal_logic/portalRayCaster.js';
 import { PortalSystem } from './portal_logic/portalSystem.js';
