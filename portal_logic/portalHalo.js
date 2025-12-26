@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 
 export class PortalHalo {
-  constructor(color = 0x0000ff, radius = 1.0, thickness = 0.15) {
-    // 2.0 radius makes it roughly 4 meters tall.
+  constructor(color = 0x0000ff, radius = 1.08, thickness = 0.17) {
+    // Size chosen between original and previous change: close to the portal mask
+    // so there is no visible gap, but still mostly outside the portal opening.
     const geometry = new THREE.RingGeometry(radius, radius + thickness, 64);
     const material = new THREE.MeshBasicMaterial({
       color: color,
@@ -17,7 +18,7 @@ export class PortalHalo {
     this.mesh.visible = false;
 
     // Add inner glow mesh
-    const glowGeometry = new THREE.RingGeometry(radius * 0.3, radius * 0.9, 64);
+    const glowGeometry = new THREE.RingGeometry(radius * 0.32, radius * 0.92, 64);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
@@ -37,7 +38,7 @@ export class PortalHalo {
   }
 
   setPositionAndOrientation(position, normal) {
-    const offset = normal.clone().multiplyScalar(0.03);
+    const offset = normal.clone().multiplyScalar(0.035);
     this.mesh.position.copy(position).add(offset);
     const quaternion = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 0, 1),

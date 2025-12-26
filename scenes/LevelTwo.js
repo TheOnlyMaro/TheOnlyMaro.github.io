@@ -103,5 +103,5 @@ export function setupScene() {
         scene.environment = texture;
     }, undefined, error => console.error('EXR failed to load:', error));
 
-    return { scene, walls: allWalls, puzzle: { door, button, cube } };
+    return { scene, walls: allWalls, puzzle: { door, button, cube }, collisionObjects: [] };
 }
