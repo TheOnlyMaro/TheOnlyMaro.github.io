@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Game</title>
     <link rel="stylesheet" href="./index.css"> 
-
     <script type="importmap">
       {
         "imports": {
@@ -14,43 +13,129 @@
         }
       }
     </script>
-
+    
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #start-btn:hover { background: white !important; color: black !important; }
+        /* --- CORE STYLES --- */
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        body { margin: 0; overflow: hidden; background: #111; font-family: 'Rajdhani', sans-serif; color: white; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; z-index: 10; }
+        
+        /* --- MAIN MENU CONTAINER --- */
+        #main-menu {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20;
+            background: rgba(10, 15, 20, 0.75); backdrop-filter: blur(8px);
+            background-image: linear-gradient(rgba(0, 170, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 170, 255, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px; animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove { 0% { background-position: 0 0; } 100% { background-position: 40px 40px; } }
+
+        h1.title { font-size: 6rem; margin: 0; letter-spacing: 8px; text-transform: uppercase; text-shadow: 0 0 20px rgba(0, 170, 255, 0.5); line-height: 1; }
+        h1 span.blue { color: #00aaff; } h1 span.orange { color: #ffaa00; }
+        .subtitle { color: #8899aa; font-size: 1.2rem; margin-bottom: 3rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* --- MENUS --- */
+        .menu-view { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 400px; transition: all 0.2s; }
+        .hidden { display: none !important; }
+
+        /* --- BUTTONS --- */
+        .sci-fi-btn {
+            width: 100%; padding: 15px 0; font-size: 1.5rem; font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            background: rgba(0,0,0,0.6); border: 2px solid rgba(255, 255, 255, 0.2); color: white; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: all 0.2s ease; position: relative;
+        }
+        .sci-fi-btn:hover { background: white; color: black; border-color: white; box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); transform: scale(1.02); }
+        .sci-fi-btn.small { width: auto; padding: 10px 30px; font-size: 1.2rem; margin-top: 10px; }
+
+        /* --- OPTIONS PANEL --- */
+        .options-panel { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        
+        .tab-header { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .tab-btn { flex: 1; background: transparent; border: 1px solid #444; color: #888; padding: 10px; cursor: pointer; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
+        .tab-btn.active { background: #00aaff; color: black; border-color: #00aaff; box-shadow: 0 0 10px #00aaff; }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; text-align: left; }
+        .control-label { font-size: 0.9rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Flex row for Slider + Number Input */
+        .input-row { display: flex; gap: 15px; align-items: center; }
+        input[type=range] { flex: 1; accent-color: #00aaff; cursor: pointer; height: 5px; }
+        input[type=number] { 
+            width: 60px; background: transparent; border: 1px solid #444; color: #00aaff; 
+            font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; padding: 5px; text-align: center; 
+        }
+
+        .instructions { margin-top: 20px; display: grid; grid-template-columns: auto auto; gap: 10px 30px; text-align: left; font-size: 0.9rem; color: #8899aa; }
+        .key { color: white; font-weight: bold; }
     </style>
 </head>
 
 <body>
-
-    <div id="ui-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; z-index: 10;">
-        
+    <div id="ui-layer">
         <div id="crosshair" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
             <div style="width: 4px; height: 4px; background: white; border-radius: 50%; box-shadow: 0 0 4px black;"></div>
         </div>
-
         <div id="portal-hud" style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px;">
             <div id="hud-blue" style="width: 40px; height: 40px; border: 3px solid #00aaff; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #00aaff;"></div>
             <div id="hud-orange" style="width: 40px; height: 40px; border: 3px solid #ffaa00; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #ffaa00;"></div>
         </div>
     </div>
 
-    <div id="main-menu" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 20;">
-        
-        <h1 style="font-size: 4rem; margin-bottom: 1rem; letter-spacing: 5px; text-transform: uppercase;">Portal JS</h1>
-        
-        <div style="margin-bottom: 3rem; text-align: center; color: #aaa; line-height: 1.6;">
-            <p><strong>WASD</strong> to Move • <strong>SPACE</strong> to Jump</p>
-            <p><strong>Left Click</strong>: Blue Portal • <strong>Right Click</strong>: Orange Portal</p>
-            <p><strong>Q / E</strong>: Switch Portals (or Pickup Cube)</p>
+    <div id="main-menu">
+        <h1 class="title"><span class="blue">PORTAL</span> <span class="orange">JS</span></h1>
+        <div class="subtitle">Test Chamber 03 // Active</div>
+
+        <div id="menu-home" class="menu-view">
+            <button id="start-btn" class="sci-fi-btn">Initialize Test</button>
+            <button id="options-btn" class="sci-fi-btn">Options</button>
+            <div class="instructions">
+                <div><span class="key">WASD</span> Move</div>
+                <div><span class="key">SPACE</span> Jump</div>
+                <div><span class="key">CLICK</span> Portals</div>
+                <div><span class="key">E</span> Interact</div>
+            </div>
         </div>
 
-        <button id="start-btn" style="padding: 15px 50px; font-size: 1.5rem; background: transparent; border: 2px solid white; color: white; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;">
-            Start Test
-        </button>
+        <div id="menu-options" class="menu-view hidden">
+            <div class="options-panel">
+                <div class="tab-header">
+                    <button id="tab-controls" class="tab-btn active">Controls</button>
+                    <button id="tab-audio" class="tab-btn">Audio</button>
+                </div>
+
+                <div id="panel-controls">
+                    <div class="control-group">
+                        <div class="control-label">Mouse Sensitivity</div>
+                        <div class="input-row">
+                            <input type="range" id="sens-slider" min="0.1" max="5.0" step="0.1" value="2.0">
+                            <input type="number" id="sens-number" min="0.1" max="5.0" step="0.1" value="2.0">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="panel-audio" class="hidden">
+                    <div class="control-group">
+                        <div class="control-label">Ambient Volume</div>
+                        <div class="input-row">
+                            <input type="range" id="ambient-slider" min="0" max="100" value="50">
+                            <input type="number" id="ambient-number" min="0" max="100" value="50">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">SFX Volume</div>
+                        <div class="input-row">
+                            <input type="range" id="sfx-slider" min="0" max="100" value="80">
+                            <input type="number" id="sfx-number" min="0" max="100" value="80">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="back-btn" class="sci-fi-btn small">Back</button>
+        </div>
     </div>
 
     <script type="module" src="./main.js"></script>
-    
 </body>
 </html>

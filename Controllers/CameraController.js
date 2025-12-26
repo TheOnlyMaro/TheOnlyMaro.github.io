@@ -4,6 +4,7 @@ import { KeyboardController } from './keyboardController.js';
 import { MouseController } from './MouseController.js';
 import { CollisionController } from './collisionController.js';
 import { audioManager } from './AudioManager.js';
+
 export class CameraController {
     // walls = Objects that stop X/Z movement
     // floors = Objects that stop Y movement (gravity)
@@ -24,12 +25,22 @@ export class CameraController {
         this.collision = new CollisionController(this.player.getObject(), walls, [], scene); 
         
         this.player.getObject().prevPosition = this.player.getObject().position.clone();
-        // this.clock = new THREE.Clock();
-        // temp remove clock for bug fix
-
-
+        
         this.stepTimer = 0; // For footstep sounds
     }
+
+    // --- NEW: SENSITIVITY CONTROL ---
+    setSensitivity(value) {
+        // Base multiplier: 0.002 is a standard "Normal" speed for Three.js
+        const multiplier = 0.002;
+        
+        if (this.mouse) {
+            // Apply to mouse controller
+            // (Assumes MouseController has a 'sensitivity' property)
+            this.mouse.sensitivity = value * multiplier;
+        }
+    }
+    // --------------------------------
 
     update(delta) {
         
