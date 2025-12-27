@@ -8,8 +8,11 @@ export class PortalSystem extends THREE.Object3D {
     this.blueHalo = new PortalHalo(0x0000ff);
     this.orangeHalo = new PortalHalo(0xff6600);
 
+    // Add both the placed halo meshes and their overlay preview meshes
     this.add(this.blueHalo.mesh);
+    if (this.blueHalo.overlayMesh) this.add(this.blueHalo.overlayMesh);
     this.add(this.orangeHalo.mesh);
+    if (this.orangeHalo.overlayMesh) this.add(this.orangeHalo.overlayMesh);
 
     this.currentPortal = 'blue';
 
@@ -18,10 +21,29 @@ export class PortalSystem extends THREE.Object3D {
     this.bluePortalData = null;
     this.orangePortalData = null;
 
+    // Overlay flags control whether the placement overlay is shown for each color.
+    // Start enabled so the player sees an overlay immediately.
+    this.blueOverlayEnabled = true;
+    this.orangeOverlayEnabled = true;
+
     // FIXED: Store bound function for cleanup
     this.keyHandler = (e) => {
-      if (e.key === 'q' || e.key === 'Q') this.currentPortal = 'blue';
-      if (e.key === 'e' || e.key === 'E') this.currentPortal = 'orange';
+      if (e.key === 'q' || e.key === 'Q') {
+        this.currentPortal = 'blue';
+        // Re-enable blue overlay when player explicitly selects blue
+        this.blueOverlayEnabled = true;
+        this.orangeOverlayEnabled = false;
+        // Hide the other color's placement preview immediately
+        if (this.orangeHalo && this.orangeHalo.setOverlayVisible) this.orangeHalo.setOverlayVisible(false);
+      }
+      if (e.key === 'e' || e.key === 'E') {
+        this.currentPortal = 'orange';
+        // Re-enable orange overlay when player explicitly selects orange
+        this.orangeOverlayEnabled = true;
+        this.blueOverlayEnabled = false;
+        // Hide the other color's placement preview immediately
+        if (this.blueHalo && this.blueHalo.setOverlayVisible) this.blueHalo.setOverlayVisible(false);
+      }
     };
     window.addEventListener('keydown', this.keyHandler);
     // Initialize halo glow visibility based on initial portal states
@@ -42,11 +64,28 @@ export class PortalSystem extends THREE.Object3D {
       return;
     }
 
-    const halo = this.currentPortal === 'blue' ? this.blueHalo : this.orangeHalo;
-    const isActive = this.currentPortal === 'blue' ? this.bluePortalActive : this.orangePortalActive;
-    if (!isActive) {
-      halo.setPositionAndOrientation(hitInfo.point, hitInfo.normal);
-      halo.setVisible(true);
+    const isBlue = this.currentPortal === 'blue';
+    const halo = isBlue ? this.blueHalo : this.orangeHalo;
+    const otherHalo = isBlue ? this.orangeHalo : this.blueHalo;
+    const isActive = isBlue ? this.bluePortalActive : this.orangePortalActive;
+    const otherActive = isBlue ? this.orangePortalActive : this.bluePortalActive;
+    const overlayEnabled = isBlue ? this.blueOverlayEnabled : this.orangeOverlayEnabled;
+
+    // Keep placed (active) portal halo visible at its placed location
+    if (isBlue) {
+      if (this.bluePortalActive) this.blueHalo.setVisible(true);
+      if (!this.orangePortalActive) this.orangeHalo.setVisible(false);
+    } else {
+      if (this.orangePortalActive) this.orangeHalo.setVisible(true);
+      if (!this.bluePortalActive) this.blueHalo.setVisible(false);
+    }
+
+    // Show overlay preview independently using overlayMesh so placed portal visuals remain unchanged
+    if (overlayEnabled) {
+      halo.setOverlayPositionAndOrientation(hitInfo.point, hitInfo.normal);
+      halo.setOverlayVisible(true);
+    } else if (halo.setOverlayVisible) {
+      halo.setOverlayVisible(false);
     }
   }
 
@@ -76,6 +115,10 @@ export class PortalSystem extends THREE.Object3D {
     if (this.currentPortal === 'blue') {
       this.blueHalo.setPositionAndOrientation(hitInfo.point, hitInfo.normal);
       this.blueHalo.setVisible(true);
+      // After placing, disable the placement overlay for blue until the player
+      // presses Q to re-enable it (this does not affect the placed portal halo).
+      this.blueOverlayEnabled = false;
+      if (this.blueHalo.setOverlayVisible) this.blueHalo.setOverlayVisible(false);
       this.updateHaloGlowState();
       this.bluePortalActive = true;
       this.bluePortalData = {
@@ -87,6 +130,8 @@ export class PortalSystem extends THREE.Object3D {
     } else {
       this.orangeHalo.setPositionAndOrientation(hitInfo.point, hitInfo.normal);
       this.orangeHalo.setVisible(true);
+      this.orangeOverlayEnabled = false;
+      if (this.orangeHalo.setOverlayVisible) this.orangeHalo.setOverlayVisible(false);
       this.updateHaloGlowState();
       this.orangePortalActive = true;
       this.orangePortalData = {
@@ -109,5 +154,24 @@ export class PortalSystem extends THREE.Object3D {
   // ADDED: Cleanup method
   dispose() {
     window.removeEventListener('keydown', this.keyHandler);
+  }
+
+  // Reset portals and re-enable overlays (used when the scene resets / player dies)
+  reset() {
+    this.bluePortalActive = false;
+    this.orangePortalActive = false;
+    this.bluePortalData = null;
+    this.orangePortalData = null;
+    this.blueOverlayEnabled = true;
+    this.orangeOverlayEnabled = true;
+    if (this.blueHalo) {
+      this.blueHalo.setVisible(false);
+      if (this.blueHalo.setOverlayVisible) this.blueHalo.setOverlayVisible(false);
+    }
+    if (this.orangeHalo) {
+      this.orangeHalo.setVisible(false);
+      if (this.orangeHalo.setOverlayVisible) this.orangeHalo.setOverlayVisible(false);
+    }
+    if (this.updateHaloGlowState) this.updateHaloGlowState();
   }
 }

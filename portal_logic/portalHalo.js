@@ -29,12 +29,40 @@ export class PortalHalo {
     });
     this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
     this.mesh.add(this.glowMesh);
+    // Overlay mesh (placement preview) — separate from the placed portal mesh
+    const overlayMaterial = material.clone();
+    overlayMaterial.opacity = 0.6;
+    const overlayGeometry = geometry.clone();
+    this.overlayMesh = new THREE.Mesh(overlayGeometry, overlayMaterial);
+    this.overlayMesh.visible = false;
+    // Slightly render on top
+    this.overlayMesh.renderOrder = 999;
+    // Add a subtle inner ring to the overlay for clarity
+    const overlayInner = new THREE.Mesh(glowGeometry.clone(), glowMaterial.clone());
+    overlayInner.material.opacity = 0.25;
+    this.overlayMesh.add(overlayInner);
     this.animationTime = 0;
     this.baseRadius = radius;
   }
 
   setVisible(visible) {
     this.mesh.visible = visible;
+  }
+
+  setOverlayVisible(visible) {
+    if (this.overlayMesh) this.overlayMesh.visible = visible;
+  }
+
+  setOverlayPositionAndOrientation(position, normal) {
+    if (!this.overlayMesh) return;
+    const offset = normal.clone().multiplyScalar(0.035);
+    this.overlayMesh.position.copy(position).add(offset);
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 0, 1),
+      normal
+    );
+    this.overlayMesh.quaternion.copy(quaternion);
+    this.overlayMesh.visible = true;
   }
 
   setPositionAndOrientation(position, normal) {
@@ -49,10 +77,18 @@ export class PortalHalo {
     this.mesh.visible = true;
   }
   animate(deltaTime) {
-    if (!this.mesh.visible) return;
     this.animationTime += deltaTime;
     const pulse = Math.sin(this.animationTime * 3) * 0.1 + 0.9;
-    this.glowMesh.material.opacity = pulse * 0.3;
-    this.glowMesh.rotation.z += deltaTime * 0.5;
+    if (this.glowMesh && this.mesh.visible) {
+      this.glowMesh.material.opacity = pulse * 0.3;
+      this.glowMesh.rotation.z += deltaTime * 0.5;
+    }
+    // Animate overlay separately
+    if (this.overlayMesh && this.overlayMesh.visible) {
+      // rotate the overlay for a subtle motion
+      this.overlayMesh.rotation.z += deltaTime * 0.6;
+      // pulse overlay opacity a bit
+      if (this.overlayMesh.material) this.overlayMesh.material.opacity = 0.4 + Math.sin(this.animationTime * 2) * 0.15;
+    }
   }
 }

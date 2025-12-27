@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DraggableCube, FloorButton, Door } from '../puzzle_logic/PuzzleObjects.js';
 import { createLabWallMaterial, createMetalFloorMaterial } from '../textures/materials_TextureMapping.js';
+import { setupLevelThreeLights } from '../decor/lights.js';
 
 export function setupScene() {
     const scene = new THREE.Scene();
@@ -11,9 +12,7 @@ export function setupScene() {
     scene.userData.spikes = [];
 
     // --- LIGHTING ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0);
-    scene.add(ambientLight);
-    scene.userData.ambientLight = ambientLight;
+    setupLevelThreeLights(scene);
 
     // --- CONSTANTS ---
     const TUNNEL_WIDTH = 10;
@@ -53,9 +52,7 @@ export function setupScene() {
         }
     });
 
-    const bulb1 = createLightBulb(scene, new THREE.Vector3(75, 8, 0), 0xffff99);
-    scene.userData.bulb1Glow = bulb1.glow;
-    bulb1.glow.visible = false;
+
 
 
     // --- 2. THE PIT AREA (X: 80 to 160) ---
@@ -129,11 +126,7 @@ export function setupScene() {
     // Blocks the void if the player looks straight ahead at the end of the Z-hall
     addBox(scene, hallX, 5, safeZ - safeLen / 2 + 0.5, 11, 10, 1, createLabWallMaterial(), walls);
 
-    const bulb2 = createLightBulb(scene, new THREE.Vector3(hallX, 8, safeZ), 0xffff99);
-    scene.userData.bulb2Glow = bulb2.glow;
-    scene.userData.bulb2Light = bulb2.light;
-    bulb2.glow.visible = false;
-    bulb2.light.intensity = 0;
+
 
 
     // --- 4. PUZZLE ROOM (Turn Left towards +X) ---
@@ -185,17 +178,9 @@ export function setupScene() {
     scene.userData.handlePlayerDeath = () => {
         if (!scene.userData.hasDied) {
             scene.userData.hasDied = true;
-            scene.userData.ambientLight.intensity = 0.6;
+            if (scene.userData.ambientLight) scene.userData.ambientLight.intensity = 0.6;
             if (scene.userData.bulb1Glow) scene.userData.bulb1Glow.visible = true;
-            bulb1.light.intensity = 5;
-            if (scene.userData.bulb2Glow) {
-                scene.userData.bulb2Glow.visible = true;
-                scene.userData.bulb2Light.intensity = 5;
-            }
-            if (scene.userData.bulb3Glow) {
-                scene.userData.bulb3Glow.visible = true;
-                scene.userData.bulb3Light.intensity = 5;
-            }
+            if (scene.userData.bulb1) scene.userData.bulb1.light.intensity = 5;
         }
     };
 
@@ -203,7 +188,7 @@ export function setupScene() {
         scene,
         walls,
         collisionObjects,
-        puzzle: { cube: puzzleBlock, button: platformButton, ambientButton: ambientButton, door: exitDoor },
+        puzzle: { cube: puzzleBlock, button: platformButton, door: exitDoor },
         spawnPoint: new THREE.Vector3(20, 5, 0)
     };
 }
@@ -218,16 +203,7 @@ function addBox(scene, x, y, z, w, h, d, mat, colArray = null) {
     return mesh;
 }
 
-function createLightBulb(scene, pos, color) {
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 2 }));
-    bulb.position.copy(pos);
-    const light = new THREE.PointLight(color, 2, 50);
-    light.position.copy(pos);
-    const glow = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.2 }));
-    glow.position.copy(pos);
-    scene.add(bulb, light, glow);
-    return { bulb, light, glow };
-}
+
 
 function createSpikeArea(scene, pos, lx, lz) {
     const spacing = 2;

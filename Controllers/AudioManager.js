@@ -156,6 +156,45 @@ export class AudioManager {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.8);
   }
+
+  playTeleport() {
+    if (!this.enabled) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter(); // The "Vw" maker
+
+    // Wiring: Osc -> Filter -> Gain -> SFX
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    // Settings
+    osc.type = 'sine'; // Pure sci-fi tone
+    filter.type = 'lowpass';
+
+    const now = this.ctx.currentTime;
+    const duration = 0.2; // Short and snappy
+
+    // 1. PITCH: "òóp" (Rising tone)
+    // Start low (150Hz) and shoot up to (800Hz)
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + duration);
+
+    // 2. FILTER: "Vw" (Opening the sound)
+    // Starts muffled, then opens up quickly
+    filter.frequency.setValueAtTime(100, now);
+    filter.frequency.exponentialRampToValueAtTime(3000, now + duration);
+
+    // 3. VOLUME: Fade in/out
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.5, now + 0.05); // Quick attack
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration); // Fade out
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+  
 }
 
 export const audioManager = new AudioManager();

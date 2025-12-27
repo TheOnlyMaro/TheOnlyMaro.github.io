@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 export function setupLights(scene, floorSize, wallHeight) {
     // --- Ambient Light --- (darker now)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.15); // very soft general illumination
-    scene.add(ambient);
+    // const ambient = new THREE.AmbientLight(0xffffff, 0.15); // very soft general illumination
+    // scene.add(ambient);
 
     // --- Spot Lights (ceiling lights) ---
     const spot1 = new THREE.SpotLight(0x88ccff, 1.2); // slightly dimmer
@@ -38,10 +38,10 @@ export function setupLights(scene, floorSize, wallHeight) {
     });
 
     const positions = [
-        [floorSize/2 - 1, 0.05, floorSize/2 - 1],
-        [-floorSize/2 + 1, 0.05, floorSize/2 - 1],
-        [floorSize/2 - 1, 0.05, -floorSize/2 + 1],
-        [-floorSize/2 + 1, 0.05, -floorSize/2 + 1]
+        [floorSize / 2 - 1, 0.05, floorSize / 2 - 1],
+        [-floorSize / 2 + 1, 0.05, floorSize / 2 - 1],
+        [floorSize / 2 - 1, 0.05, -floorSize / 2 + 1],
+        [-floorSize / 2 + 1, 0.05, -floorSize / 2 + 1]
     ];
 
     positions.forEach((pos, i) => {
@@ -59,4 +59,30 @@ export function setupLights(scene, floorSize, wallHeight) {
     });
 
     return { ambient, spot1, spot2 };
+}
+
+export function createLightBulb(scene, pos, color) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 2 }));
+    bulb.position.copy(pos);
+    const light = new THREE.PointLight(color, 2, 50);
+    light.position.copy(pos);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(1.2), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.2 }));
+    glow.position.copy(pos);
+    scene.add(bulb, light, glow);
+    return { bulb, light, glow };
+}
+
+export function setupLevelThreeLights(scene) {
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+    scene.userData.ambientLight = ambientLight;
+
+    const bulb1 = createLightBulb(scene, new THREE.Vector3(75, 8, 0), 0xffff99);
+    bulb1.glow.visible = false;
+    scene.userData.bulb1Glow = bulb1.glow;
+    scene.userData.bulb1 = bulb1; // Store reference for dynamic control in level logic
+
+    // bulb2 - just a static light in the second hall
+    createLightBulb(scene, new THREE.Vector3(165.5, 8, 77.5), 0xffff99);
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { audioManager } from '../Controllers/AudioManager.js';
 
 export class PortalTeleport {
   constructor(player, portalSystem, collisionController = null, mouseController = null) {
@@ -48,6 +49,7 @@ export class PortalTeleport {
 
   teleportTo(destinationPortal, sourcePortal, portalName) {
     console.log(`🌀 Teleporting from ${portalName}...`);
+    audioManager.playTeleport();
 
     // -------------------------------------------------------------------------
     // 1. Position Teleport

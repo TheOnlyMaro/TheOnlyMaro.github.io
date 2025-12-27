@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { CameraController } from './Controllers/CameraController.js';
 import { createRenderer } from './core/renderer.js';
-import { setupScene as setupLevelOne } from './scenes/LevelOne.js';
-import { setupScene as setupLevelTwo } from './scenes/LevelTwo.js';
 import { setupScene as setupLevelThree } from './scenes/LevelThree.js';
 import { PortalRaycaster } from './portal_logic/portalRayCaster.js';
 import { PortalSystem } from './portal_logic/portalSystem.js';
@@ -250,6 +248,31 @@ function updateHUD() {
   }
 }
 
+// Visual underline for selected portal in HUD
+function updateHUDSelection() {
+  const hudBlueEl = document.getElementById('hud-blue');
+  const hudOrangeEl = document.getElementById('hud-orange');
+  if (!hudBlueEl || !hudOrangeEl) return;
+  const selected = portalSystem.currentPortal === 'blue' ? 'blue' : 'orange';
+  const blueUnderline = hudBlueEl.querySelector('.hud-underline');
+  const orangeUnderline = hudOrangeEl.querySelector('.hud-underline');
+  if (selected === 'blue') {
+    if (blueUnderline) blueUnderline.style.opacity = '1';
+    if (orangeUnderline) orangeUnderline.style.opacity = '0';
+  } else {
+    if (blueUnderline) blueUnderline.style.opacity = '0';
+    if (orangeUnderline) orangeUnderline.style.opacity = '1';
+  }
+}
+
+// Keep HUD selection in sync when player presses Q/E
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') {
+    // portalSystem.keyHandler also runs, but update HUD immediately
+    setTimeout(updateHUDSelection, 0);
+  }
+});
+
 const clock = new THREE.Clock();
 
 function animate() {
@@ -313,6 +336,11 @@ function animate() {
         if (cameraController.player) {
           if (cameraController.player.velocity) cameraController.player.velocity.set(0, 0, 0);
           cameraController.player.onGround = true;
+        }
+        // Remove placed portals and re-enable placement overlays on death/reset
+        if (typeof portalSystem.reset === 'function') portalSystem.reset();
+        if (typeof portalRenderer.updatePortalMeshes === 'function') {
+          portalRenderer.updatePortalMeshes(null, null, false, false);
         }
         if (scene.userData && typeof scene.userData.handlePlayerDeath === 'function') {
           scene.userData.handlePlayerDeath();

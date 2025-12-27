@@ -77,8 +77,12 @@
             <div style="width: 4px; height: 4px; background: white; border-radius: 50%; box-shadow: 0 0 4px black;"></div>
         </div>
         <div id="portal-hud" style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px;">
-            <div id="hud-blue" style="width: 40px; height: 40px; border: 3px solid #00aaff; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #00aaff;"></div>
-            <div id="hud-orange" style="width: 40px; height: 40px; border: 3px solid #ffaa00; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #ffaa00;"></div>
+            <div id="hud-blue" class="hud-item" style="width: 40px; height: 40px; border: 3px solid #00aaff; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #00aaff; position: relative;">
+                <div class="hud-underline" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: -10px; width: 24px; height: 4px; background: #00aaff; border-radius: 2px; opacity: 0; transition: opacity 0.15s;"></div>
+            </div>
+            <div id="hud-orange" class="hud-item" style="width: 40px; height: 40px; border: 3px solid #ffaa00; border-radius: 50%; opacity: 0.2; transition: opacity 0.2s; box-shadow: 0 0 10px #ffaa00; position: relative;">
+                <div class="hud-underline" style="position: absolute; left: 50%; transform: translateX(-50%); bottom: -10px; width: 24px; height: 4px; background: #ffaa00; border-radius: 2px; opacity: 0; transition: opacity 0.15s;"></div>
+            </div>
         </div>
     </div>
 
@@ -89,11 +93,11 @@
         <div id="menu-home" class="menu-view">
             <button id="start-btn" class="sci-fi-btn">Initialize Test</button>
             <button id="options-btn" class="sci-fi-btn">Options</button>
-            <div class="instructions">
+                <div class="instructions">
                 <div><span class="key">WASD</span> Move</div>
                 <div><span class="key">SPACE</span> Jump</div>
-                <div><span class="key">CLICK</span> Portals</div>
-                <div><span class="key">E</span> Interact</div>
+                <div><span class="key">Q / E</span> Select Portal Color</div>
+                <div><span class="key">CLICK</span> Place Portal</div>
             </div>
         </div>
 

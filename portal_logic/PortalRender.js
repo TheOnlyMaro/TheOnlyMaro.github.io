@@ -185,11 +185,37 @@ export class PortalRenderer {
    * Update portal positions when moved
    */
   updatePortalMeshes(bluePortalData, orangePortalData, blueActive, orangeActive) {
+    // BLUE portal
     if (blueActive && bluePortalData) {
       this.createPortalComponents(bluePortalData, this.orangeRenderTarget, true);
+    } else if (!blueActive) {
+      // Remove existing blue portal components if present
+      if (this.bluePortalMesh) {
+        this.scene.remove(this.bluePortalMesh.mesh);
+        this.bluePortalMesh.dispose();
+        this.bluePortalMesh = null;
+      }
+      if (this.blueStencilMask) {
+        this.scene.remove(this.blueStencilMask.mesh);
+        this.blueStencilMask.dispose();
+        this.blueStencilMask = null;
+      }
     }
+
+    // ORANGE portal
     if (orangeActive && orangePortalData) {
       this.createPortalComponents(orangePortalData, this.blueRenderTarget, false);
+    } else if (!orangeActive) {
+      if (this.orangePortalMesh) {
+        this.scene.remove(this.orangePortalMesh.mesh);
+        this.orangePortalMesh.dispose();
+        this.orangePortalMesh = null;
+      }
+      if (this.orangeStencilMask) {
+        this.scene.remove(this.orangeStencilMask.mesh);
+        this.orangeStencilMask.dispose();
+        this.orangeStencilMask = null;
+      }
     }
   }
 
