@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DraggableCube, FloorButton, Door } from '../puzzle_logic/PuzzleObjects.js';
 import { createLabWallMaterial, createMetalFloorMaterial } from '../textures/materials_TextureMapping.js';
-import { setupLevelThreeLights } from '../decor/lights.js';
+import { setupLevelThreeLights, createLightBulb } from '../decor/lights.js';
 
 export function setupScene() {
     const scene = new THREE.Scene();
